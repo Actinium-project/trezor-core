@@ -7,7 +7,9 @@ from trezor.messages.EthereumTxRequest import EthereumTxRequest
 from trezor.messages.MessageType import EthereumTxAck
 from trezor.utils import HashWriter
 
-from apps.common import seed
+from .address import validate_full_path
+
+from apps.common import paths, seed
 from apps.ethereum import tokens
 from apps.ethereum.layout import (
     require_confirm_data,
@@ -22,6 +24,7 @@ MAX_CHAIN_ID = 2147483629
 async def sign_tx(ctx, msg):
     msg = sanitize(msg)
     check(msg)
+    await paths.validate_path(ctx, validate_full_path, path=msg.address_n)
 
     data_total = msg.data_length
 
@@ -128,8 +131,7 @@ async def send_request_chunk(ctx, data_left: int):
 
 
 async def send_signature(ctx, msg: EthereumSignTx, digest):
-    address_n = msg.address_n or ()
-    node = await seed.derive_node(ctx, address_n)
+    node = await seed.derive_node(ctx, msg.address_n)
 
     signature = secp256k1.sign(
         node.private_key(), digest, False, secp256k1.CANONICAL_SIG_ETHEREUM
